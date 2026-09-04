@@ -40,7 +40,7 @@ def get_inventory_text():
 
 # --- AI Engine (Groq Llama-3.3) ---
 API_KEY = "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"
-llm = ChatGroq(model_name="llama-3.3-70b-versatile", groq_api_key=API_KEY, temperature=0.3)
+llm = ChatGroq(model_name="llama-3.1-8b-instant", groq_api_key=API_KEY, temperature=0.3)
 
 # --- UI Setup ---
 st.set_page_config(page_title="Grand Stay 24/7 AI", page_icon="🏨", layout="wide")
