@@ -75,7 +75,7 @@ Guest ki inquiry resolve karein aur unka Name aur Phone number maangein taaki bo
                 try:
                     chat_completion = client.chat.completions.create(
                         messages=conversation,
-                        model="llama3-8b-8192",
+                        model="mixtral-8x7b-32768",
                     )
                     response_text = chat_completion.choices[0].message.content
                     st.write(response_text)
