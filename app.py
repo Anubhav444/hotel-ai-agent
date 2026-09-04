@@ -38,7 +38,7 @@ def get_inventory_text():
     return "\n".join([f"- {r[0]}: Rs. {r[1]}/night ({r[2]} available)" for r in rows])
 
 # --- Groq Client ---
-client = Groq(api_key="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")
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 # --- UI Setup ---
 st.set_page_config(page_title="Grand Stay 24/7 AI", page_icon="🏨", layout="wide")
