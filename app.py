@@ -28,7 +28,6 @@ cursor.execute("INSERT OR IGNORE INTO rooms VALUES ('Suite', 6000, 2)")
 conn.commit()
 conn.close()
 
-# --- Helper Functions ---
 def get_inventory_text():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -37,10 +36,9 @@ def get_inventory_text():
     conn.close()
     return "\n".join([f"- {r[0]}: Rs. {r[1]}/night ({r[2]} available)" for r in rows])
 
-# --- Groq Client ---
+# Client initialization via secrets
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# --- UI Setup ---
 st.set_page_config(page_title="Grand Stay 24/7 AI", page_icon="🏨", layout="wide")
 tab1, tab2 = st.tabs(["💬 Guest Assistant", "📊 Lead Dashboard (Admin)"])
 
@@ -60,40 +58,30 @@ with tab1:
             st.write(query)
 
         current_inventory = get_inventory_text()
-        system_prompt = f"""Aap ek polite aur smart Hotel Receptionist AI Concierge hain.
-Hamesha polite Hinglish ya English me natural conversation karein.
+        system_prompt = f"""Aap ek polite aur helpful Hotel Concierge AI hain.
+Hamesha natural Hindi/Hinglish me baat karein.
 Hotel details:
-- Check-in: 12:00 PM | Check-out: 11:00 AM
-- Free Wi-Fi aur breakfast included hai. Swimming pool 7 AM to 8 PM open rehta hai.
-Current Live Inventory & Rates:
+- Check-in: 12 PM | Check-out: 11 AM
+- Free Wi-Fi aur Breakfast shamil hai. Swimming pool 7 AM to 8 PM open rehta hai.
+Current Available Rooms:
 {current_inventory}
 
-Guest ka sawal handle karein. Agar guest booking chahe ya price discuss kare, toh unka Name aur Phone Number maangein taaki booking confirm ho sake."""
+Guest ki inquiry resolve karein aur unka Name aur Phone number maangein taaki booking confirm ho sake."""
 
         conversation = [{"role": "system", "content": system_prompt}] + st.session_state.messages
 
         with st.chat_message("assistant"):
             with st.spinner("AI reply taiyar ho raha hai..."):
-                response_text = ""
-                # Try primary model, fallback if not found
-                models_to_try = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"]
-                for m in models_to_try:
-                    try:
-                        chat_completion = client.chat.completions.create(
-                            messages=conversation,
-                            model=m,
-                        )
-                        response_text = chat_completion.choices[0].message.content
-                        break
-                    except Exception:
-                        continue
-
-                if not response_text:
-                    response_text = "Maafi chahte hain, server connect karne me temporary issue hai. Kripya thodi der me dobara try karein."
-                
-                st.write(response_text)
-
-        st.session_state.messages.append({"role": "assistant", "content": response_text})
+                try:
+                    chat_completion = client.chat.completions.create(
+                        messages=conversation,
+                        model="llama-3.3-70b-versatile",
+                    )
+                    response_text = chat_completion.choices[0].message.content
+                    st.write(response_text)
+                    st.session_state.messages.append({"role": "assistant", "content": response_text})
+                except Exception as e:
+                    st.error(f"API Error: {str(e)}")
 
 with tab2:
     st.subheader("Captured Leads")
