@@ -1,7 +1,6 @@
 import sqlite3
 import streamlit as st
-from langchain_groq import ChatGroq
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from groq import Groq
 
 # --- Database Setup ---
 DB_FILE = "hotel_leads.db"
@@ -38,9 +37,8 @@ def get_inventory_text():
     conn.close()
     return "\n".join([f"- {r[0]}: Rs. {r[1]}/night ({r[2]} available)" for r in rows])
 
-# --- AI Engine (Groq Llama-3.3) ---
-API_KEY = "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"
-llm = ChatGroq(model_name="llama-3.1-8b-instant", groq_api_key=API_KEY, temperature=0.3)
+# --- Groq Client ---
+client = Groq(api_key="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")
 
 # --- UI Setup ---
 st.set_page_config(page_title="Grand Stay 24/7 AI", page_icon="🏨", layout="wide")
@@ -49,21 +47,21 @@ tab1, tab2 = st.tabs(["💬 Guest Assistant", "📊 Lead Dashboard (Admin)"])
 with tab1:
     st.title("🏨 Grand Stay 24/7 AI Concierge")
     
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-    for msg in st.session_state.chat_history:
-        role = "user" if isinstance(msg, HumanMessage) else "assistant"
-        with st.chat_message(role):
-            st.write(msg.content)
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
 
     if query := st.chat_input("Puchiye: room rates, facilities ya booking..."):
+        st.session_state.messages.append({"role": "user", "content": query})
         with st.chat_message("user"):
             st.write(query)
 
         current_inventory = get_inventory_text()
-        system_instruction = f"""Aap ek polite aur smart Hotel Receptionist AI Concierge hain.
-Hamesha polite Hinglish ya English me baat karein.
+        system_prompt = f"""Aap ek polite aur smart Hotel Receptionist AI Concierge hain.
+Hamesha polite Hinglish ya English me natural conversation karein.
 Hotel details:
 - Check-in: 12:00 PM | Check-out: 11:00 AM
 - Free Wi-Fi aur breakfast included hai. Swimming pool 7 AM to 8 PM open rehta hai.
@@ -72,15 +70,18 @@ Current Live Inventory & Rates:
 
 Guest ka sawal handle karein. Agar guest booking chahe ya price discuss kare, toh unka Name aur Phone Number maangein taaki booking confirm ho sake."""
 
-        messages = [SystemMessage(content=system_instruction)] + st.session_state.chat_history + [HumanMessage(content=query)]
-        
+        conversation = [{"role": "system", "content": system_prompt}] + st.session_state.messages
+
         with st.chat_message("assistant"):
             with st.spinner("AI reply taiyar ho raha hai..."):
-                response = llm.invoke(messages)
-                st.write(response.content)
+                chat_completion = client.chat.completions.create(
+                    messages=conversation,
+                    model="llama-3.1-8b-instant",
+                )
+                response_text = chat_completion.choices[0].message.content
+                st.write(response_text)
 
-        st.session_state.chat_history.append(HumanMessage(content=query))
-        st.session_state.chat_history.append(AIMessage(content=response.content))
+        st.session_state.messages.append({"role": "assistant", "content": response_text})
 
 with tab2:
     st.subheader("Captured Leads")
