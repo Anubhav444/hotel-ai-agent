@@ -74,11 +74,23 @@ Guest ka sawal handle karein. Agar guest booking chahe ya price discuss kare, to
 
         with st.chat_message("assistant"):
             with st.spinner("AI reply taiyar ho raha hai..."):
-                chat_completion = client.chat.completions.create(
-                    messages=conversation,
-                    model="llama-3.1-8b-instant",
-                )
-                response_text = chat_completion.choices[0].message.content
+                response_text = ""
+                # Try primary model, fallback if not found
+                models_to_try = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"]
+                for m in models_to_try:
+                    try:
+                        chat_completion = client.chat.completions.create(
+                            messages=conversation,
+                            model=m,
+                        )
+                        response_text = chat_completion.choices[0].message.content
+                        break
+                    except Exception:
+                        continue
+
+                if not response_text:
+                    response_text = "Maafi chahte hain, server connect karne me temporary issue hai. Kripya thodi der me dobara try karein."
+                
                 st.write(response_text)
 
         st.session_state.messages.append({"role": "assistant", "content": response_text})
